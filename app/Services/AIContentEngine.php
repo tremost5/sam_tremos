@@ -33,12 +33,15 @@ class AIContentEngine
 
         $response = $this->provider->generateText($prompt);
         if (($response['status'] ?? null) !== 'success') {
-            $fallback = 'Tips mancing '.strtolower($category).' yang cocok untuk hari ini';
-            return $fallback;
+            throw new \RuntimeException($response['message'] ?? 'AI provider gagal menghasilkan ide.');
         }
 
         $text = trim((string) ($response['data'] ?? ''));
-        return $text !== '' ? $text : 'Tips mancing '.strtolower($category).' yang cocok untuk hari ini';
+        if ($text === '') {
+            throw new \RuntimeException('AI provider mengembalikan ide kosong.');
+        }
+
+        return $text;
     }
 
     public function generateCaption(array $context = []): string
@@ -56,10 +59,15 @@ class AIContentEngine
 
         $response = $this->provider->generateText($prompt);
         if (($response['status'] ?? null) !== 'success') {
-            return "Hari ini saya mau share soal {$idea}. Untuk para pemancing yang lagi nyari pola di {$category}, tetap santai, baca kondisi alam, dan jangan buru-buru ganti teknik. Kadang yang bikin hasil beda bukan cuma umpan, tapi timing dan rasa sabar. Siapa yang lagi menunggu strike hari ini?";
+            throw new \RuntimeException($response['message'] ?? 'AI provider gagal menghasilkan caption.');
         }
 
-        return (string) ($response['data'] ?? '');
+        $text = trim((string) ($response['data'] ?? ''));
+        if ($text === '') {
+            throw new \RuntimeException('AI provider mengembalikan caption kosong.');
+        }
+
+        return $text;
     }
 
     public function generateHashtags(array $context = []): string
@@ -74,10 +82,15 @@ class AIContentEngine
 
         $response = $this->provider->generateText($prompt);
         if (($response['status'] ?? null) !== 'success') {
-            return '#Mancing #FishingLifestyle #SamTremos #Nila #Mujair #Bendungan';
+            throw new \RuntimeException($response['message'] ?? 'AI provider gagal menghasilkan hashtag.');
         }
 
-        return trim((string) ($response['data'] ?? '#Mancing #FishingLifestyle #SamTremos #Nila #Mujair #Bendungan'));
+        $text = trim((string) ($response['data'] ?? ''));
+        if ($text === '') {
+            throw new \RuntimeException('AI provider mengembalikan hashtag kosong.');
+        }
+
+        return $text;
     }
 
     public function generateEngagementQuestion(array $context = []): string
@@ -90,10 +103,15 @@ class AIContentEngine
 
         $response = $this->provider->generateText($prompt);
         if (($response['status'] ?? null) !== 'success') {
-            return 'Spot favorit kalian untuk mancing di pagi hari apa?';
+            throw new \RuntimeException($response['message'] ?? 'AI provider gagal menghasilkan pertanyaan engagement.');
         }
 
-        return trim((string) ($response['data'] ?? 'Spot favorit kalian untuk mancing di pagi hari apa?'));
+        $text = trim((string) ($response['data'] ?? ''));
+        if ($text === '') {
+            throw new \RuntimeException('AI provider mengembalikan pertanyaan kosong.');
+        }
+
+        return $text;
     }
 
     public function generateImagePrompt(array $context = []): string
@@ -107,10 +125,15 @@ class AIContentEngine
 
         $response = $this->provider->generateText($prompt);
         if (($response['status'] ?? null) !== 'success') {
-            return "Cinematic realistic outdoor fishing photograph, Indonesian river or lake scene, angler with rod, natural light, detailed water, calm nature background, high quality, relevant to {$category}, photorealistic, vivid colors, natural composition.";
+            throw new \RuntimeException($response['message'] ?? 'AI provider gagal menghasilkan image prompt.');
         }
 
-        return trim((string) ($response['data'] ?? ''));
+        $text = trim((string) ($response['data'] ?? ''));
+        if ($text === '') {
+            throw new \RuntimeException('AI provider mengembalikan image prompt kosong.');
+        }
+
+        return $text;
     }
 
     public function generateContentPackage(array $context = []): array
@@ -119,13 +142,18 @@ class AIContentEngine
         $language = $context['language'] ?? 'id';
         $tone = $context['tone'] ?? 'santai';
         $history = $context['history'] ?? [];
-        $idea = $context['idea'] ?? $this->generateIdea(['category' => $category, 'tone' => $tone, 'language' => $language, 'history' => $history]);
+        $userId = $context['user_id'] ?? null;
+        if ($userId) {
+            $this->applyUserConfig((int) $userId);
+        }
+        $sharedContext = ['category' => $category, 'tone' => $tone, 'language' => $language, 'history' => $history, 'user_id' => $userId];
+        $idea = $context['idea'] ?? $this->generateIdea($sharedContext);
         $title = $context['title'] ?? trim((string) str($idea)->limit(60));
 
-        $caption = $this->generateCaption(['idea' => $idea, 'category' => $category, 'tone' => $tone, 'language' => $language, 'history' => $history]);
-        $hashtags = $this->generateHashtags(['category' => $category, 'history' => $history]);
-        $engagementQuestion = $this->generateEngagementQuestion(['category' => $category]);
-        $imagePrompt = $this->generateImagePrompt(['category' => $category, 'idea' => $idea]);
+        $caption = $this->generateCaption([...$sharedContext, 'idea' => $idea]);
+        $hashtags = $this->generateHashtags($sharedContext);
+        $engagementQuestion = $this->generateEngagementQuestion([...$sharedContext]);
+        $imagePrompt = $this->generateImagePrompt([...$sharedContext, 'idea' => $idea]);
         $qualityScore = $this->calculateQualityScore([
             'originality' => 88,
             'relevance' => 90,

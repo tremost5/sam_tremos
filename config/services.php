@@ -38,7 +38,7 @@ return [
     'meta' => [
         'app_id' => env('META_APP_ID'),
         'app_secret' => env('META_APP_SECRET'),
-        'redirect_uri' => env('META_REDIRECT_URI'),
+        'redirect_uri' => env('META_REDIRECT_URI', env('APP_URL').'/facebook/callback'),
         'access_token' => env('META_ACCESS_TOKEN'),
         'default_page_id' => env('META_DEFAULT_PAGE_ID'),
         'graph_version' => env('META_GRAPH_VERSION', 'v19.0'),

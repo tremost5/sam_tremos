@@ -66,8 +66,8 @@ class AutopilotService
         }
 
         // Ensure AI provider/configuration is present before queuing any generation
-        if (! $this->engine->isProviderConfigured()) {
-            return ['generated' => 0, 'reason' => 'configuration_required', 'message' => 'AI provider belum dikonfigurasi. Set AI_API_KEY dan AI_TEXT_MODEL terlebih dahulu.'];
+        if (! $this->engine->isProviderConfiguredForUser($user->id)) {
+            return ['generated' => 0, 'reason' => 'configuration_required', 'message' => 'AI provider belum dikonfigurasi.'];
         }
 
         // Count current inventory: only statuses considered part of inventory are 'ready' and 'scheduled'

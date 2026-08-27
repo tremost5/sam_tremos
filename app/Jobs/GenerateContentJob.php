@@ -27,12 +27,9 @@ class GenerateContentJob implements ShouldQueue
     public function handle(AIContentEngine $engine, ContentQualityService $qualityService, ContentSimilarityService $similarityService): void
     {
         // Prevent creating AI-generated content when provider is not configured for this user.
-        if (! $engine->isProviderConfigured(/* check env defaults first */)) {
-            // check user-specific config
-            if (! $engine->isProviderConfiguredForUser($this->userId ?? null)) {
-                \Log::warning('AI provider not configured for user, skipping content generation job', ['user_id' => $this->userId]);
-                return;
-            }
+        if (! $engine->isProviderConfiguredForUser($this->userId ?? null)) {
+            \Log::warning('AI provider not configured for user, skipping content generation job', ['user_id' => $this->userId]);
+            return;
         }
 
         $userPosts = Post::query()->where('user_id', $this->userId)->orderByDesc('created_at')->limit(20)->get();

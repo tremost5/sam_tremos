@@ -19,8 +19,8 @@ class DashboardController extends Controller
         $facebookService = app(MetaFacebookService::class);
         $autopilotService = app(AutopilotService::class);
 
-        $aiConfigured = $engine->isProviderConfigured();
-        $facebookConfigured = $facebookService->hasCredentials($user)
+        $aiConfigured = $engine->isProviderConfiguredForUser($user->id);
+        $facebookConfigured = $facebookService->hasCredentialsForUser($user)
             && \App\Models\FacebookAccount::query()->where('user_id', $user->id)->exists();
         $autopilotEnabled = (bool) \App\Models\AutopilotSetting::query()->where('user_id', $user->id)->where('enabled', true)->exists();
         $stats = [

@@ -6,6 +6,7 @@ use App\Models\AutopilotSetting;
 use App\Models\User;
 use App\Services\AutopilotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AutopilotServiceTest extends TestCase
@@ -16,6 +17,7 @@ class AutopilotServiceTest extends TestCase
     {
         // Ensure AI provider appears configured for this test so Autopilot will queue jobs
         config(['services.ai.api_key' => 'test-key', 'services.ai.text_model' => 'gpt-test']);
+        Queue::fake();
 
         $user = User::factory()->create();
 

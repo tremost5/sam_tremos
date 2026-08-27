@@ -15,7 +15,7 @@ class FacebookController extends Controller
     {
         $account = FacebookAccount::query()->where('user_id', Auth::id())->first();
         $pages = FacebookPage::query()->where('user_id', Auth::id())->get();
-        $metaConfigured = $metaService->hasCredentials(Auth::user());
+        $metaConfigured = $metaService->hasCredentialsForUser(Auth::user());
 
         return view('facebook.index', compact('account', 'pages', 'metaConfigured'));
     }
@@ -32,8 +32,10 @@ class FacebookController extends Controller
             'redirect_uri' => $meta['redirect_uri'],
             'scope' => 'pages_manage_posts,pages_read_engagement,pages_show_list',
             'response_type' => 'code',
-            'state' => bin2hex(random_bytes(16)),
+            'state' => $state = bin2hex(random_bytes(32)),
         ]);
+
+        session(['facebook_oauth_state' => $state]);
 
         return redirect('https://www.facebook.com/'.config('services.meta.graph_version', 'v19.0').'/dialog/oauth?'.$params);
     }
@@ -41,6 +43,12 @@ class FacebookController extends Controller
     public function callback(Request $request)
     {
         $code = $request->get('code');
+        $state = $request->get('state');
+        $expectedState = $request->session()->pull('facebook_oauth_state');
+        if (! $state || ! $expectedState || ! hash_equals($expectedState, $state)) {
+            return redirect()->route('facebook.index')->with('error', 'Facebook OAuth tidak valid atau sudah kedaluwarsa.');
+        }
+
         if (! $code) {
             return redirect()->route('facebook.index')->with('error', 'Facebook OAuth gagal.');
         }
@@ -75,6 +83,10 @@ class FacebookController extends Controller
         $pageResponse = \Illuminate\Support\Facades\Http::get('https://graph.facebook.com/'.$meta['graph_version'].'/me/accounts', [
             'access_token' => $payload['access_token'],
         ]);
+
+        if ($pageResponse->failed()) {
+            return redirect()->route('facebook.index')->with('error', 'Facebook terhubung, tetapi daftar Page tidak dapat diambil.');
+        }
 
         $pageData = $pageResponse->json()['data'] ?? [];
         foreach ($pageData as $page) {

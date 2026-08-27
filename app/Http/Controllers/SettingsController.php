@@ -45,7 +45,7 @@ class SettingsController extends Controller
             $aiTextModel = config('services.ai.text_model');
             $aiImageModel = config('services.ai.image_model');
 
-            $facebookStatus = $facebookService->hasCredentials($user) ? 'Configured' : 'Not Configured';
+            $facebookStatus = $facebookService->hasCredentialsForUser($user) ? 'Configured' : 'Not Configured';
 
             // Null out config to reduce risk for any later code
             config(['services.ai.api_key' => null, 'services.meta.app_secret' => null, 'services.meta.access_token' => null]);
@@ -63,8 +63,10 @@ class SettingsController extends Controller
             $metaAppId = $meta?->app_id;
             $metaHasSecret = $meta?->hasAppSecret() ? true : false;
             $metaRedirect = $meta?->redirect_uri ?? route('facebook.callback');
+            $selectedPage = \App\Models\FacebookPage::where('user_id', $user->id)->where('selected', true)->first();
+            $selectedPageName = $selectedPage?->name;
 
-                return view('settings.index', compact('autopilot', 'aiStatus', 'aiProvider', 'aiTextModel', 'aiImageModel', 'aiHasKey', 'facebookStatus', 'metaAppId', 'metaHasSecret', 'metaRedirect'));
+                return view('settings.index', compact('autopilot', 'aiStatus', 'aiProvider', 'aiTextModel', 'aiImageModel', 'aiHasKey', 'facebookStatus', 'metaAppId', 'metaHasSecret', 'metaRedirect', 'selectedPageName'));
     }
 
     // Update AI provider configuration (per-user)

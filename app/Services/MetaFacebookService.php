@@ -15,7 +15,7 @@ class MetaFacebookService
             return [
                 'app_id' => $setting?->app_id,
                 'app_secret' => $setting?->getAppSecret(),
-                'redirect_uri' => $setting?->redirect_uri,
+                'redirect_uri' => $setting?->redirect_uri ?: config('services.meta.redirect_uri'),
                 'graph_version' => config('services.meta.graph_version', 'v19.0'),
             ];
         }
@@ -28,21 +28,26 @@ class MetaFacebookService
         ];
     }
 
-    public function hasCredentials(?\Illuminate\Contracts\Auth\Authenticatable $user = null): bool
+    public function hasCredentials(): bool
     {
-        if ($user) {
-            $config = $this->getConfigForUser($user);
-            return ! empty($config['app_id']) && ! empty($config['app_secret']) && ! empty($config['redirect_uri']);
-        }
-
         return ! empty(config('services.meta.app_id'))
             && ! empty(config('services.meta.app_secret'))
             && (! empty(config('services.meta.access_token')) || \App\Models\FacebookAccount::query()->exists());
     }
 
+    public function hasCredentialsForUser(\Illuminate\Contracts\Auth\Authenticatable $user): bool
+    {
+        $config = $this->getConfigForUser($user);
+
+        return ! empty($config['app_id']) && ! empty($config['app_secret']) && ! empty($config['redirect_uri']);
+    }
+
     public function getPages(?\Illuminate\Contracts\Auth\Authenticatable $user = null): array
     {
-        if (! $this->hasCredentials($user)) {
+        if ($user && ! $this->hasCredentialsForUser($user)) {
+            return [];
+        }
+        if (! $user && ! $this->hasCredentials()) {
             return [];
         }
 
@@ -57,19 +62,13 @@ class MetaFacebookService
 
         if (! empty($pages)) return $pages;
 
-        // Fallback to config-based placeholder
-        return [
-            [
-                'id' => config('services.meta.default_page_id', 'mock_page_id'),
-                'name' => 'Sam Tremos Facebook Page',
-            ],
-        ];
+        return [];
     }
 
     public function publish(Post $post, ?string $pageId = null): array
     {
         $user = $post->user_id ? \App\Models\User::find($post->user_id) : null;
-        if (! $user || ! $this->hasCredentials($user)) {
+        if (! $user || ! $this->hasCredentialsForUser($user)) {
             return [
                 'status' => 'configuration_required',
                 'message' => 'Meta app credentials are not configured.',
@@ -79,23 +78,21 @@ class MetaFacebookService
 
         $page = \App\Models\FacebookPage::query()
             ->where('user_id', $user->id)
-            ->when($pageId, fn ($query) => $query->where('facebook_id', $pageId), fn ($query) => $query->where('selected', true))
+            ->where('selected', true)
+            ->when($pageId, fn ($query) => $query->where('facebook_id', $pageId))
             ->first();
         $pageId = $page?->facebook_id ?? $pageId;
         if (! $page || ! $pageId) {
             return ['status' => 'configuration_required', 'message' => 'Facebook Page belum dipilih.'];
         }
 
-        // Determine access token: prefer env config, otherwise use stored page/account tokens
-        $accessToken = config('services.meta.access_token');
-        if (empty($accessToken)) {
-            // Try page token from DB
-            if ($page && ! empty($page->access_token)) {
-                try {
-                    $accessToken = \Illuminate\Support\Facades\Crypt::decryptString($page->access_token);
-                } catch (\Throwable $e) {
-                    $accessToken = null;
-                }
+        // Use only the authenticated user's selected page/account token.
+        $accessToken = null;
+        if ($page && ! empty($page->access_token)) {
+            try {
+                $accessToken = \Illuminate\Support\Facades\Crypt::decryptString($page->access_token);
+            } catch (\Throwable $e) {
+                $accessToken = null;
             }
         }
 

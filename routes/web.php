@@ -14,6 +14,10 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
+Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
+Route::view('/terms', 'legal.terms')->name('terms');
+
 Route::middleware(['auth', 'verified', \App\Http\Middleware\SanitizeSensitiveConfig::class])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');

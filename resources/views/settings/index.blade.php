@@ -182,7 +182,7 @@
                 <h3 class="text-lg font-semibold text-white">Facebook / Meta</h3>
                 <p class="mt-2 text-sm text-slate-400">Meta Configuration: <strong class="text-white">{{ $metaAppId ? '✓ Configured' : '✕ Not configured' }}</strong></p>
                 <p class="mt-1 text-sm text-slate-400">Facebook: <strong class="text-white">{{ $facebookStatus }}</strong></p>
-                <p class="mt-1 text-sm text-slate-400">Page: <strong class="text-white">Belum ada Page yang dipilih</strong></p>
+                <p class="mt-1 text-sm text-slate-400">Page: <strong class="text-white">{{ $selectedPageName ?? 'Belum ada Page yang dipilih' }}</strong></p>
                 <p class="mt-3 text-sm">
                     @if($metaAppId)
                         <a href="{{ route('facebook.index') }}" class="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950">Hubungkan Facebook</a>

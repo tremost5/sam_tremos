@@ -1,11 +1,12 @@
 Options -Indexes
-DirectoryIndex public/index.php
+DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Let Apache serve files after an internal rewrite into public/.
-    RewriteRule ^public(?:/|$) - [L]
+    # Expose only files stored on the public disk; do not expose storage internals.
+    RewriteCond /home/dscx7887/public_html/malang-web.site/pilotfb/storage/app/public/$1 -f
+    RewriteRule ^storage/(.+)$ storage/app/public/$1 [END]
 
     # Never expose Laravel source, manifests, or deployment credentials.
     RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|vendor)(?:/|$) - [F,L,NC]
@@ -15,7 +16,10 @@ DirectoryIndex public/index.php
     RewriteCond /home/dscx7887/public_html/malang-web.site/pilotfb/public/$1 -f
     RewriteRule ^(.+)$ public/$1 [L]
 
+    # Keep the direct /public URL working while the preferred URL uses root index.php.
+    RewriteRule ^public(?:/|$) - [L]
+
     # Send /pilotfb, /pilotfb/login, /pilotfb/dashboard, and /pilotfb/settings
-    # to the Laravel front controller without changing the visible URL.
-    RewriteRule ^ public/index.php [L]
+    # to the subdirectory-aware Laravel front controller.
+    RewriteRule ^ index.php [L]
 </IfModule>

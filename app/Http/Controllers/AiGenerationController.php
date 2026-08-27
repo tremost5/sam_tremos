@@ -38,8 +38,8 @@ class AiGenerationController extends Controller
         $categoryName = $category?->name ?? 'Fishing Lifestyle';
         $history = Post::query()->where('user_id', Auth::id())->orderByDesc('created_at')->limit(20)->pluck('title')->all();
 
-        if (! $engine->isProviderConfigured()) {
-            return redirect()->back()->with('error', 'AI provider belum dikonfigurasi. Set AI_API_KEY dan AI_TEXT_MODEL terlebih dahulu.');
+        if (! $engine->isProviderConfiguredForUser(Auth::id())) {
+            return redirect()->back()->with('error', 'AI provider belum dikonfigurasi.');
         }
 
         $jobsQueued = 0;
