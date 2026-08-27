@@ -1,0 +1,14 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/dscx7887/public_html/malang-web.site/pilotfb
+
+    # The Git checkout is already DEPLOYPATH; do not copy the repository.
+    # Install dependencies only when Composer exists, otherwise keep a valid vendor tree.
+    - /bin/sh -c 'if command -v composer >/dev/null 2>&1; then cd "$DEPLOYPATH" && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-scripts; elif [ -f "$DEPLOYPATH/vendor/autoload.php" ]; then echo "Using existing vendor directory"; else echo "Composer is required and vendor/autoload.php is missing" >&2; exit 1; fi'
+
+    # Apply only pending migrations when PHP CLI is available; never reset or delete the database.
+    - /bin/sh -c 'if command -v php >/dev/null 2>&1; then cd "$DEPLOYPATH" && php artisan migrate --force --no-interaction; else echo "PHP CLI unavailable; migrations were not run"; fi'
+
+    # Build Vite assets when npm exists; otherwise use the committed local build artifact.
+    - /bin/sh -c 'if command -v npm >/dev/null 2>&1; then cd "$DEPLOYPATH" && npm ci --omit=optional && npm run build; elif [ -f "$DEPLOYPATH/public/build/manifest.json" ]; then echo "Using committed Vite build"; else echo "npm unavailable and public/build/manifest.json is missing" >&2; exit 1; fi'
