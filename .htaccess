@@ -1,24 +1,21 @@
 Options -Indexes
+DirectoryIndex public/index.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Allow the internal target of the rules below without rewriting it again.
+    # Let Apache serve files after an internal rewrite into public/.
     RewriteRule ^public(?:/|$) - [L]
 
-    # Keep Laravel source and deployment credentials outside the public surface.
+    # Never expose Laravel source, manifests, or deployment credentials.
     RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|vendor)(?:/|$) - [F,L,NC]
     RewriteRule ^(?:artisan|composer\.json|composer\.lock|package(?:-lock)?\.json|vite\.config\.js|postcss\.config\.js|tailwind\.config\.js|phpunit\.xml|\.cpanel\.yml|\.gitignore|README\.md|\.env(?:\..*)?|\.git)(?:/|$) - [F,L,NC]
 
-    # The domain document root is one level above this project. Serve Laravel
-    # through public/index.php while keeping the existing project layout intact.
-    RewriteRule ^$ public/index.php [L]
-
-    # Serve Vite/static files from public/ (for example /pilotfb/build/*).
+    # Serve existing public files such as /pilotfb/build/* and favicon assets.
     RewriteCond /home/dscx7887/public_html/malang-web.site/pilotfb/public/$1 -f
     RewriteRule ^(.+)$ public/$1 [L]
 
-    # Send application routes such as /pilotfb/login and /pilotfb/settings
-    # to Laravel's public front controller.
+    # Send /pilotfb, /pilotfb/login, /pilotfb/dashboard, and /pilotfb/settings
+    # to the Laravel front controller without changing the visible URL.
     RewriteRule ^ public/index.php [L]
 </IfModule>
